@@ -74,10 +74,6 @@ class FanControlLoop():
         log.info(f"{self.name} TMP: {curr_temp_value:.02f}C")
         # log.info(f"{self.temp}")
 
-        # Preserve current temp value for next cycle
-        prev_temp_value = self._prev_temp_value
-        self._prev_temp_value = curr_temp_value
-
         fan = self.fan
         log.info(f"{self.name} FAN: speed={fan.speed} pwm={fan.pwm}")
 
@@ -94,17 +90,20 @@ class FanControlLoop():
             # fan speed increase desired - react immediately
             new_fan_pwm = curr_fan_pwm + min(delta_pwm, self._max_pwm_step)
             fan.pwm = new_fan_pwm
-            return log.info(f"{self.name} FAN: INCREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
-
-        # fan speed decrease desired - check for sufficient temperature change
-        delta_temp = prev_temp_value - curr_temp_value
-        if force_update or (delta_temp > self._delta_threshold):
-            new_fan_pwm = curr_fan_pwm - min(delta_pwm, self._max_pwm_step)
-            log.info(f"{self.name} FAN: DECREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
-            fan.pwm = new_fan_pwm
+            log.info(f"{self.name} FAN: INCREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
         else:
-            log.info(f"{self.name} FAN: INSUFFICIENT temperature change to reduce fan speed")
-        return
+            # fan speed decrease desired - check for sufficient temperature change
+            delta_temp = self._prev_temp_value - curr_temp_value
+            if force_update or (delta_temp > self._delta_threshold):
+                new_fan_pwm = curr_fan_pwm - min(delta_pwm, self._max_pwm_step)
+                log.info(f"{self.name} FAN: DECREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
+                fan.pwm = new_fan_pwm
+            else:
+                log.info(f"{self.name} FAN: INSUFFICIENT temperature change to reduce fan speed")
+                return  # do not preserve temperature
+
+        # Preserve temp value for next cycle
+        self._prev_temp_value = curr_temp_value
 
 
 def main():
