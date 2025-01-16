@@ -101,7 +101,8 @@ class FanControlLoop():
                 log.info(f"{self.name} FAN: DECREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
                 fan.pwm = new_fan_pwm
             else:
-                log.info(f"{self.name} FAN: INSUFFICIENT temperature change to reduce fan speed")
+                prev = self._prev_temp_value
+                log.info(f"{self.name} FAN: Insufficient temperature change to reduce fan speed: previous={prev}")
                 return  # do not preserve temperature
 
         # Preserve temp value for next cycle
