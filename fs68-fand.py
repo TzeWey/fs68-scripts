@@ -23,13 +23,15 @@ log.addHandler(log_handler)
 
 class FanControlLoop():
     def __init__(self, name: str, temp: FS68_TEMP, fan: FS68_FAN,
-                 target_temperature: float, max_pwm_step: int = 5, min_pwm: int = 50):
+                 target_temperature: float, delta_temp_threshold: float, max_pwm_step: int = 5, min_pwm: int = 50):
         self._name = name
         self._temp = temp
         self._fan = fan
         self._target_temperature = target_temperature
+        self._delta_temp_threshold = delta_temp_threshold
         self._max_pwm_step = max_pwm_step
         self._min_pwm = min_pwm
+        self._prev_temp_value = 100.0  # ensure first run
 
     @property
     def name(self):
@@ -67,7 +69,7 @@ class FanControlLoop():
         desired_pwm = int(desired_pwm)
         return desired_pwm
 
-    def run(self, force_update=False):
+    def run(self):
         curr_temp_value = self.temp.value
         log.info(f"{self.name} TMP: {curr_temp_value:.02f}C")
         # log.info(f"{self.temp}")
@@ -91,18 +93,21 @@ class FanControlLoop():
             log.info(f"{self.name} FAN: INCREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
         else:
             # fan speed decrease desired - check for sufficient temperature change
-            delta_pwm = curr_fan_pwm - desired_pwm
-            if force_update or (delta_pwm > self._max_pwm_step):
+            delta_pwm = self._prev_temp_value - curr_temp_value
+            if delta_pwm > self._delta_temp_threshold:
                 new_fan_pwm = curr_fan_pwm - min(delta_pwm, self._max_pwm_step)
                 log.info(f"{self.name} FAN: DECREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
                 fan.pwm = new_fan_pwm
             else:
-                log.info(f"{self.name} FAN: Insufficient delta change to reduce fan speed")
+                prev = f"{self._prev_temp_value:.02f}"
+                log.info(f"{self.name} FAN: Insufficient delta change to reduce fan speed, prev={prev}")
+                return  # do not preserve temperature
+
+        self._prev_temp_value = curr_temp_value
 
 
 def main():
     POLL_INTERVAL = 10
-    first_run = True
 
     # Wait 1 poll interval before starting to avoid conflicts with other post-init scripts
     sleep(POLL_INTERVAL)
@@ -114,21 +119,22 @@ def main():
                                   fs.get_zone_temp([TempZone.CPU, TempZone.SYSTEM, TempZone.PHY]),
                                   fs.get_fan(FanType.CPU),
                                   target_temperature=55.0,
+                                  delta_temp_threshold=1.0,
                                   )
 
         ssd_ctrl = FanControlLoop("SSD",
                                   fs.get_zone_temp(TempZone.NVME),
                                   fs.get_fan(FanType.STORAGE),
                                   target_temperature=55.0,
+                                  delta_temp_threshold=1.0,
                                   )
 
         while (True):
             fs.probe_devices()
 
             for control_loop in [sys_ctrl, ssd_ctrl]:
-                control_loop.run(force_update=first_run)
+                control_loop.run()
 
-            first_run = False
             sleep(POLL_INTERVAL)
 
 
