@@ -110,6 +110,10 @@ class FanControlLoop():
 def main():
     POLL_INTERVAL = 10
     first_run = True
+
+    # Wait 1 poll interval before starting to avoid conflicts with other post-init scripts
+    sleep(POLL_INTERVAL)
+
     with FS68() as fs:
         fs.probe_devices()  # first probe
 
