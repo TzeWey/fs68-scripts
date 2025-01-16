@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# nohup python3 fs68-fand.py &
+# nohup python3 /root/fs68-scripts/fs68-fand.py >/dev/null 2>&1 &
 
 from logging import getLogger, INFO, Formatter
 from logging.handlers import RotatingFileHandler
