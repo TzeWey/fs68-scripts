@@ -4,10 +4,12 @@
 
 from logging import getLogger, INFO, Formatter
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from time import sleep
+
 from fs68 import FS68, FS68_FAN, FS68_TEMP, TempZone, FanType
 
-LOG_NAME = "fs68-fand.log"
+LOG_NAME = Path(__file__).parent.resolve().joinpath("fs68-fand.log")
 LOG_MAX_BYTES = 10 * 1024 * 1024
 LOG_COUNT = 5
 
