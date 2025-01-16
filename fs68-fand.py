@@ -93,14 +93,14 @@ class FanControlLoop():
             log.info(f"{self.name} FAN: INCREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
         else:
             # fan speed decrease desired - check for sufficient temperature change
-            delta_pwm = self._prev_temp_value - curr_temp_value
-            if delta_pwm > self._delta_temp_threshold:
+            delta_temp = self._prev_temp_value - curr_temp_value
+            if delta_temp > self._delta_temp_threshold:
                 new_fan_pwm = curr_fan_pwm - min(delta_pwm, self._max_pwm_step)
                 log.info(f"{self.name} FAN: DECREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
                 fan.pwm = new_fan_pwm
             else:
                 prev = f"{self._prev_temp_value:.02f}"
-                log.info(f"{self.name} FAN: Insufficient delta change to reduce fan speed, prev={prev}")
+                log.info(f"{self.name} FAN: INSUFFICIENT delta of {delta_temp:.02f} to reduce fan speed, prev={prev}")
                 return  # do not preserve temperature
 
         self._prev_temp_value = curr_temp_value
