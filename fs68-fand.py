@@ -23,17 +23,13 @@ log.addHandler(log_handler)
 
 class FanControlLoop():
     def __init__(self, name: str, temp: FS68_TEMP, fan: FS68_FAN,
-                 target_temperature: float, delta_threshold: float, max_pwm_step: int = 5, min_pwm: int = 50):
+                 target_temperature: float, max_pwm_step: int = 5, min_pwm: int = 50):
         self._name = name
         self._temp = temp
         self._fan = fan
         self._target_temperature = target_temperature
-        self._delta_threshold = delta_threshold
         self._max_pwm_step = max_pwm_step
         self._min_pwm = min_pwm
-
-        # Record current temp as initial prev_temp_value
-        self._prev_temp_value = temp.value
 
     @property
     def name(self):
@@ -95,18 +91,13 @@ class FanControlLoop():
             log.info(f"{self.name} FAN: INCREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
         else:
             # fan speed decrease desired - check for sufficient temperature change
-            delta_temp = self._prev_temp_value - curr_temp_value
-            if force_update or (delta_temp > self._delta_threshold):
+            delta_pwm = curr_fan_pwm - desired_pwm
+            if force_update or (delta_pwm > self._max_pwm_step):
                 new_fan_pwm = curr_fan_pwm - min(delta_pwm, self._max_pwm_step)
                 log.info(f"{self.name} FAN: DECREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
                 fan.pwm = new_fan_pwm
             else:
-                prev = self._prev_temp_value
-                log.info(f"{self.name} FAN: Insufficient temperature change to reduce fan speed: previous={prev}")
-                return  # do not preserve temperature
-
-        # Preserve temp value for next cycle
-        self._prev_temp_value = curr_temp_value
+                log.info(f"{self.name} FAN: Insufficient delta change to reduce fan speed")
 
 
 def main():
@@ -123,14 +114,12 @@ def main():
                                   fs.get_zone_temp([TempZone.CPU, TempZone.SYSTEM, TempZone.PHY]),
                                   fs.get_fan(FanType.CPU),
                                   target_temperature=55.0,
-                                  delta_threshold=2.0,
                                   )
 
         ssd_ctrl = FanControlLoop("SSD",
                                   fs.get_zone_temp(TempZone.NVME),
                                   fs.get_fan(FanType.STORAGE),
                                   target_temperature=55.0,
-                                  delta_threshold=2.0,
                                   )
 
         while (True):
