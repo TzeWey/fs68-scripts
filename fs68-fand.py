@@ -9,6 +9,14 @@ from time import sleep
 
 from fs68 import FS68, FS68_FAN, FS68_TEMP, TempZone, FanType
 
+POLL_INTERVAL = 10
+
+SYS_TARGET_TEMPERATURE = 60.0
+SYS_DELTA_TEMP_THRESHOLD = 1.0
+
+SSD_TARGET_TEMPERATURE = 60.0
+SSD_DELTA_TEMP_THRESHOLD = 1.0
+
 LOG_NAME = Path(__file__).parent.resolve().joinpath("fs68-fand.log")
 LOG_MAX_BYTES = 10 * 1024 * 1024
 LOG_COUNT = 5
@@ -93,7 +101,7 @@ class FanControlLoop():
             log.info(f"{self.name} FAN: INCREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
         else:
             # fan speed decrease desired - check for sufficient temperature change
-            delta_temp = self._prev_temp_value - curr_temp_value
+            delta_temp = abs(self._prev_temp_value - curr_temp_value)
             if delta_temp > self._delta_temp_threshold:
                 new_fan_pwm = curr_fan_pwm - min(delta_pwm, self._max_pwm_step)
                 log.info(f"{self.name} FAN: DECREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
@@ -107,8 +115,6 @@ class FanControlLoop():
 
 
 def main():
-    POLL_INTERVAL = 10
-
     # Wait 1 poll interval before starting to avoid conflicts with other post-init scripts
     sleep(POLL_INTERVAL)
 
@@ -118,15 +124,15 @@ def main():
         sys_ctrl = FanControlLoop("SYS",
                                   fs.get_zone_temp([TempZone.CPU, TempZone.SYSTEM, TempZone.PHY]),
                                   fs.get_fan(FanType.CPU),
-                                  target_temperature=55.0,
-                                  delta_temp_threshold=1.0,
+                                  target_temperature=SYS_TARGET_TEMPERATURE,
+                                  delta_temp_threshold=SYS_DELTA_TEMP_THRESHOLD,
                                   )
 
         ssd_ctrl = FanControlLoop("SSD",
                                   fs.get_zone_temp(TempZone.NVME),
                                   fs.get_fan(FanType.STORAGE),
-                                  target_temperature=55.0,
-                                  delta_temp_threshold=1.0,
+                                  target_temperature=SSD_TARGET_TEMPERATURE,
+                                  delta_temp_threshold=SSD_DELTA_TEMP_THRESHOLD,
                                   )
 
         while (True):
