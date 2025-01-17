@@ -39,7 +39,7 @@ class FanControlLoop():
         self._delta_temp_threshold = delta_temp_threshold
         self._max_pwm_step = max_pwm_step
         self._min_pwm = min_pwm
-        self._prev_temp_value = 100.0  # ensure first run
+        self._high_temp_value = 100.0  # ensure first run
 
     @property
     def name(self):
@@ -99,19 +99,21 @@ class FanControlLoop():
             new_fan_pwm = curr_fan_pwm + min(delta_pwm, self._max_pwm_step)
             fan.pwm = new_fan_pwm
             log.info(f"{self.name} FAN: INCREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
+            self._high_temp_value = curr_temp_value  # track highest temperature
         else:
-            # fan speed decrease desired - check for sufficient temperature change
-            delta_temp = abs(self._prev_temp_value - curr_temp_value)
+            # Fan speed decrease desired - check for sufficient temperature change
+            delta_temp = abs(self._high_temp_value - curr_temp_value)
             if delta_temp > self._delta_temp_threshold:
                 new_fan_pwm = curr_fan_pwm - min(delta_pwm, self._max_pwm_step)
                 log.info(f"{self.name} FAN: DECREASE fan PWM from {curr_fan_pwm} to {new_fan_pwm}")
                 fan.pwm = new_fan_pwm
+                # Decrement the high temp value by the threshold to ensure we allow the
+                # fan speed to decrease gradually when the temperature drops
+                self._high_temp_value -= self._delta_temp_threshold
             else:
-                prev = f"{self._prev_temp_value:.02f}"
-                log.info(f"{self.name} FAN: INSUFFICIENT delta of {delta_temp:.02f} to reduce fan speed, prev={prev}")
+                high = f"{self._high_temp_value:.02f}"
+                log.info(f"{self.name} FAN: INSUFFICIENT delta [{delta_temp:.02f}] to reduce fan speed, high={high}")
                 return  # do not preserve temperature
-
-        self._prev_temp_value = curr_temp_value
 
 
 def main():
