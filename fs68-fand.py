@@ -2,31 +2,38 @@
 
 # nohup python3 /root/fs68-scripts/fs68-fand.py >/dev/null 2>&1 &
 
-from logging import getLogger, INFO, Formatter
+from logging import getLogger, INFO, Formatter, StreamHandler
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from time import sleep
 
 from fs68 import FS68, FS68_FAN, FS68_TEMP, TempZone, FanType
 
+FS68_FAND_VERSION = "0.1"
+
 POLL_INTERVAL = 10
 
 SYS_TARGET_TEMPERATURE = 60.0
 SYS_DELTA_TEMP_THRESHOLD = 1.0
+SYS_MIN_PWM = 45
 
 SSD_TARGET_TEMPERATURE = 60.0
 SSD_DELTA_TEMP_THRESHOLD = 1.0
+SSD_MIN_PWM = 30
 
 LOG_NAME = Path(__file__).parent.resolve().joinpath("fs68-fand.log")
 LOG_MAX_BYTES = 10 * 1024 * 1024
 LOG_COUNT = 5
 
 log_formatter = Formatter("%(asctime)s.%(msecs)03d [%(levelname)-8s] %(message)s", datefmt="%d-%m-%Y %H:%M:%S")
-log_handler = RotatingFileHandler(LOG_NAME, maxBytes=LOG_MAX_BYTES, backupCount=LOG_COUNT)
-log_handler.setFormatter(log_formatter)
+log_file_handler = RotatingFileHandler(LOG_NAME, maxBytes=LOG_MAX_BYTES, backupCount=LOG_COUNT)
+log_file_handler.setFormatter(log_formatter)
+log_stream_handler = StreamHandler()
+log_stream_handler.setFormatter(log_formatter)
 log = getLogger(__name__)
 log.setLevel(INFO)
-log.addHandler(log_handler)
+log.addHandler(log_stream_handler)
+log.addHandler(log_file_handler)
 
 
 class FanControlLoop():
@@ -117,8 +124,7 @@ class FanControlLoop():
 
 
 def main():
-    # Wait 1 poll interval before starting to avoid conflicts with other post-init scripts
-    sleep(POLL_INTERVAL)
+    log.info(f"Started fs68-fand v{FS68_FAND_VERSION}")
 
     with FS68() as fs:
         fs.probe_devices()  # first probe
@@ -128,6 +134,7 @@ def main():
                                   fs.get_fan(FanType.CPU),
                                   target_temperature=SYS_TARGET_TEMPERATURE,
                                   delta_temp_threshold=SYS_DELTA_TEMP_THRESHOLD,
+                                  min_pwm=SYS_MIN_PWM,
                                   )
 
         ssd_ctrl = FanControlLoop("SSD",
@@ -135,6 +142,7 @@ def main():
                                   fs.get_fan(FanType.STORAGE),
                                   target_temperature=SSD_TARGET_TEMPERATURE,
                                   delta_temp_threshold=SSD_DELTA_TEMP_THRESHOLD,
+                                  min_pwm=SSD_MIN_PWM,
                                   )
 
         while (True):
