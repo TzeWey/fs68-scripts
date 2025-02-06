@@ -13,6 +13,9 @@ from time import sleep
 from typing import List, Dict, AnyStr, Union
 from pathlib import Path
 from simpleserial import Serial
+from logging import getLogger
+
+log = getLogger(__name__)
 
 
 MEM_ADDRESS_LED_BRIGHTNESS_PWM = 0xFED80403
@@ -125,13 +128,11 @@ def assert_u8(value: int, name: str):
 
 
 def pr_dbg(*args, **kwargs):
-    # print(*args, file=sys.stderr, **kwargs)
-    pass
+    log.debug(*args, file=sys.stderr, **kwargs)
 
 
 def pr_err(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
-    pass
+    log.error(*args, file=sys.stderr, **kwargs)
 
 
 ################################################################################
@@ -144,34 +145,40 @@ class FS68_OUTPUT(ABC):
 
 class FS68_TEMP(ABC):
     @property
-    def device(self):
+    def name(self) -> str:
         raise NotImplementedError()
 
     @property
-    def name(self):
+    def description(self) -> str:
         raise NotImplementedError()
 
     @property
-    def value(self):
+    def value(self) -> float:
         raise NotImplementedError()
+
+    def __str__(self):
+        return f"{self.value:.02f} "
 
 
 class FS68_FAN(ABC):
     @property
-    def device(self):
+    def device(self) -> str:
         raise NotImplementedError()
 
     @property
-    def speed(self):
+    def speed(self) -> int:
         raise NotImplementedError()
 
     @property
-    def pwm(self):
+    def pwm(self) -> int:
         raise NotImplementedError()
 
     @pwm.setter
     def pwm(self, value: int):
         raise NotImplementedError()
+
+    def __str__(self):
+        return f"speed={self.speed}, pwm={self.pwm}"
 
 
 ################################################################################
@@ -195,7 +202,8 @@ class FS68_Memtool(object):
             return map[map_offset]
 
     def write_u8(self, offset: int, value: int):
-        mem_file = os.open(self.file, os.O_RDWR | os.O_CREAT, stat.S_IRUSR | stat.S_IWUSR)
+        mem_file = os.open(self.file, os.O_RDWR | os.O_CREAT,
+                           stat.S_IRUSR | stat.S_IWUSR)
         map_start, map_size, map_offset = self.__get_map_offsets(offset, 1)
         with mmap.mmap(mem_file, map_size, mmap.MAP_SHARED, mmap.PROT_WRITE, 0, map_start) as map:
             map[map_offset] = (value & 0xFF)
@@ -282,7 +290,7 @@ class FS68_GpioOutput(FS68_OUTPUT):
 
     def set(self, mode: OutputMode):
         if mode not in [OutputMode.ON, OutputMode.OFF]:
-            print("System GPIO only supports 'ON' and 'OFF', flashing would need to be implemented manually")
+            log.warning("System GPIO only supports 'ON' and 'OFF', flashing would need to be implemented manually")
         self.__pin.set(mode != OutputMode.OFF)
 
 
@@ -381,18 +389,17 @@ class FS68_McuFan(FS68_FAN):
     def pwm(self, value: int):
         self.__mcu.set_fan_pwm(value)
 
-    def __str__(self):
-        return f"fan1={self.speed} [pwm={self.pwm}]"
-
 
 class FS68_McuOutput(FS68_OUTPUT):
     def __init__(self, mcu: FS68_Mcu, type: OutputType):
-        assert OutputType.is_valid_for_mcu(type), f"Unsupported Output Type: {type}"
+        assert OutputType.is_valid_for_mcu(
+            type), f"Unsupported Output Type: {type}"
         self.__mcu = mcu
         self.__type = type
 
     def set(self, mode: OutputMode):
-        assert OutputMode.is_valid_for_mcu(mode), f"Unsupported Output Mode: {mode}"
+        assert OutputMode.is_valid_for_mcu(
+            mode), f"Unsupported Output Mode: {mode}"
         self.__mcu.set_led_mode(self.__type, mode)
 
 
@@ -403,7 +410,8 @@ class FS68_Hwmon_Device(object):
     HWMON_ROOT = "/sys/class/hwmon"
 
     def __init__(self, node_path: str):
-        assert os.path.isdir(node_path), f"Path '{node_path}' is not a directory"
+        assert os.path.isdir(
+            node_path), f"Path '{node_path}' is not a directory"
 
         self.__node_path = node_path
         self.__device_path = self.__get_device_path()
@@ -416,7 +424,8 @@ class FS68_Hwmon_Device(object):
         self.__fans_probed = False
 
     def __get_device_path(self):
-        return os.path.realpath(self.node_path)  # get symlink source of hwmon device
+        # get symlink source of hwmon device
+        return os.path.realpath(self.node_path)
 
     def __get_type(self):
         return FS68_Hwmon_Device.get_type(self.node_path)
@@ -453,7 +462,7 @@ class FS68_Hwmon_Device(object):
                         return matches[0]
             return "PHY Device"
         if self.type == "k10temp":
-            return "AMD CPU Temperature"
+            return "AMD CPU"
         if self.type == "nct7802":
             return "Nuvoton NCT7802"
         return os.path.basename(self.node_path)
@@ -566,14 +575,14 @@ class FS68_Hwmon_FanSensor(FS68_FAN):
         path = os.path.join(self.__parent.node_path, f"{self.__fan_name}_input")
         return int(readline(path))
 
-    def __str__(self):
-        return f"{self.node}={self.speed} [pwm={self.pwm}]"
-
 
 class FS68_Hwmon_TempSensor(FS68_TEMP):
     def __init__(self, parent: FS68_Hwmon_Device, index: int):
         self.__parent = parent
         self.__index = index
+
+    def __to_temp_c(self, input: str):
+        return float(int(input)/1000)
 
     @property
     def index(self):
@@ -588,22 +597,26 @@ class FS68_Hwmon_TempSensor(FS68_TEMP):
         return f"temp{self.index}"
 
     @property
-    def value(self):
-        return readline(os.path.join(self.__parent.node_path, f"{self.node}_input"))
+    def name(self):
+        label = readline(os.path.join(self.__parent.node_path, f"{self.node}_label"))
+        return label if len(label) else self.node
 
     @property
-    def name(self):
-        return readline(os.path.join(self.__parent.node_path, f"{self.node}_label"))
+    def value(self):
+        input = readline(os.path.join(self.__parent.node_path, f"{self.node}_input"))
+        return self.__to_temp_c(input)
+
+    @property
+    def description(self):
+        return self.__parent.description
 
     def __str__(self):
-        response = f"{self.node}={self.value}"
-        if self.name:
-            response += f" [{self.name}]"
-        return response
+        return f"{self.value:.02f}  {self.device:8s} {self.name:10s} {self.description}"
 
     @classmethod
     def probe(cls, parent: FS68_Hwmon_Device, node_path: str) -> List["FS68_Hwmon_TempSensor"]:
-        assert os.path.isdir(node_path), f"Path '{node_path}' is not a directory"
+        assert os.path.isdir(
+            node_path), f"Path '{node_path}' is not a directory"
         # find all temp sensors
         sensors = []
         re_temp = re.compile(r"^temp(\d+)_input$")
@@ -687,10 +700,14 @@ class FS68_Hwmon(object):
 # FS68 Temp Aggregator
 ################################################################################
 class FS68_TempAggregator(FS68_TEMP):
-    def __init__(self, temps: List[FS68_TEMP], name: str = "Temp Aggregator"):
-        assert isinstance(temps, list), f"'temps' must be a list: {temps}"
-        self.__temps = temps
+    def __init__(self, sensor: List[FS68_Hwmon_TempSensor], name: str = "Temp Aggregator"):
+        assert isinstance(sensor, list), f"'temps' must be a list: {sensor}"
+        self.__sensors = sensor
         self.__name = name
+        self.__max_sensor = None
+
+        # Sort sensor list for display
+        self.__sensors.sort(key=lambda x: (x.device, x.name))
 
     @property
     def name(self):
@@ -705,16 +722,33 @@ class FS68_TempAggregator(FS68_TEMP):
         """
         Calculate the maximum of all temperatures
         """
-        if self.__temps is None or len(self.__temps) == 0:
+        if self.__sensors is None or len(self.__sensors) == 0:
             return None
-        values = [int(temp.value) for temp in self.__temps]
-        return max(values)
+        max_value = 0
+        max_sensor = None
+        for sensor in self.__sensors:
+            value = sensor.value
+            if value > max_value:
+                max_value = value
+                max_sensor = sensor
+        self.__max_sensor = max_sensor
+        return max_value
+
+    @property
+    def max_sensor(self):
+        return self.__max_sensor
+
+    @property
+    def sensors(self):
+        return self.__sensors
 
     def __str__(self):
-        response = f"{self.name}={self.value}"
-        # for temp in self.__temps:
-        #     response += f" [{temp.device}]{temp}"
-        return response
+        response = []
+        for i in range(0, len(self.sensors)):
+            sensor = self.sensors[i]
+            marker = "*" if self.max_sensor is sensor else " "
+            response.append(f" {marker}{sensor}")
+        return "\n".join(response)
 
 
 ################################################################################
@@ -762,17 +796,37 @@ class FS68(object):
             return FS68_McuFan(self.mcu)
         return None
 
-    def get_zone_temp(self, zone: TempZone) -> Union[FS68_TEMP, None]:
-        assert TempZone.is_valid(zone), f"Unsupported TempZone: {zone}"
-        if zone == TempZone.CPU:
-            return FS68_TempAggregator(self.hwmon.get_temps("k10temp"), name="CPU")
-        if zone == TempZone.SYSTEM:
-            return FS68_TempAggregator(self.hwmon.get_temps("nct7802"), name="BOARD")
-        if zone == TempZone.PHY:
-            return FS68_TempAggregator(self.hwmon.get_temps_by_type("phy"), name="PHY")
-        if zone == TempZone.NVME:
-            return FS68_TempAggregator(self.hwmon.get_temps_by_type("nvme"), name="NVME")
-        return None
+    def get_zone_temp(self, zones: TempZone | List[TempZone]):
+        """
+        Returns an instance of FS68_TempAggregator
+        """
+        if not isinstance(zones, list):
+            zones = [zones]  # make into list
+
+        for zone in zones:
+            assert TempZone.is_valid(zone), f"Unsupported TempZone: {zone}"
+
+        temps = []
+        names = []
+
+        def append_temps_list(t: FS68_TEMP | List[FS68_TEMP]):
+            temps.extend(t) if isinstance(t, list) else temps.append(t)
+
+        for zone in zones:
+            if zone == TempZone.CPU:
+                append_temps_list(self.hwmon.get_temps("k10temp"))
+                names.append("CPU")
+            if zone == TempZone.SYSTEM:
+                append_temps_list(self.hwmon.get_temps("nct7802"))
+                names.append("BOARD")
+            if zone == TempZone.PHY:
+                append_temps_list(self.hwmon.get_temps_by_type("phy"))
+                names.append("PHY")
+            if zone == TempZone.NVME:
+                append_temps_list(self.hwmon.get_temps_by_type("nvme"))
+                names.append("NVME")
+
+        return FS68_TempAggregator(temps, ",".join(names)) if len(temps) else None
 
     def __enter__(self):
         if not self.is_open:
