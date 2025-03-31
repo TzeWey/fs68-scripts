@@ -1,15 +1,18 @@
 
 import os
+import errno
 import sys
 import stat
 import struct
+import termios
 import mmap
 import resource
 import re
 
 from abc import ABC
 from enum import IntEnum, auto
-from time import sleep
+from select import select
+from time import sleep, monotonic
 from typing import List, Dict, AnyStr, Union
 from pathlib import Path
 from logging import getLogger
@@ -147,13 +150,13 @@ class Serial():
         def time_left():
             if timeout_time is None:
                 return None
-            return timeout_time - time.monotonic()
+            return timeout_time - monotonic()
 
-        timeout_time = time.monotonic() + self._timeout if self._timeout is not None else None
+        timeout_time = monotonic() + self._timeout if self._timeout is not None else None
 
         while len(read) < size:
             try:
-                ready, _, _ = select.select([self.fd], [], [], time_left())
+                ready, _, _ = select([self.fd], [], [], time_left())
                 if not ready:
                     break  # timeout
                 buf = os.read(self.fd, size - len(read))
