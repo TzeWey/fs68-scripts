@@ -1,18 +1,18 @@
 Scratchpad
 ```
-fs.get_output(OutputType.BUZZER).set(OutputMode.OFF)
-fs.get_output(OutputType.SYSTEM_STATUS_RED).set(OutputMode.OFF)
-fs.get_output(OutputType.SYSTEM_POWER_BLUE).set(OutputMode.ON)
-fs.get_output(OutputType.SYSTEM_STATUS_GREEN).set(OutputMode.ON)
-fs.get_output(OutputType.SYSTEM_STATUS_GREEN).set(OutputMode.OFF)
-fs.get_output(OutputType.SYSTEM_STATUS_RED).set(OutputMode.FLASH_2HZ)
+fs.output(OutputType.BUZZER).set(OutputMode.OFF)
+fs.output(OutputType.SYSTEM_STATUS_RED).set(OutputMode.OFF)
+fs.output(OutputType.SYSTEM_POWER_BLUE).set(OutputMode.ON)
+fs.output(OutputType.SYSTEM_STATUS_GREEN).set(OutputMode.ON)
+fs.output(OutputType.SYSTEM_STATUS_GREEN).set(OutputMode.OFF)
+fs.output(OutputType.SYSTEM_STATUS_RED).set(OutputMode.FLASH_2HZ)
 
-fs.get_output(OutputType.NETWORK_STATUS).set(OutputMode.ON)
-fs.get_output(OutputType.STORAGE_STATUS_GREEN).set(OutputMode.OFF)
-fs.get_output(OutputType.STORAGE_STATUS_RED).set(OutputMode.OFF)
-fs.get_output(OutputType.SIDE_RED_INNER).set(OutputMode.OFF)
-fs.get_output(OutputType.SIDE_RED_MID).set(OutputMode.OFF)
-fs.get_output(OutputType.SIDE_RED_OUTER).set(OutputMode.OFF)
+fs.output(OutputType.NETWORK_STATUS).set(OutputMode.ON)
+fs.output(OutputType.STORAGE_STATUS_GREEN).set(OutputMode.OFF)
+fs.output(OutputType.STORAGE_STATUS_RED).set(OutputMode.OFF)
+fs.output(OutputType.SIDE_RED_INNER).set(OutputMode.OFF)
+fs.output(OutputType.SIDE_RED_MID).set(OutputMode.OFF)
+fs.output(OutputType.SIDE_RED_OUTER).set(OutputMode.OFF)
 
 fs.set_led_brightness(100)
 

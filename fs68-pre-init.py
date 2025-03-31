@@ -22,7 +22,7 @@ with FS68() as fs:
     fs.set_power_mode(PowerMode.STARTUP)
     print("> Power Mode set for STARTUP")
 
-    fs.get_output(OutputType.BUZZER).set(OutputMode.ON)
+    fs.output(OutputType.BUZZER).set(OutputMode.ON)
     print("> Buzzer ENABLED")
 
     brightness = 0.3

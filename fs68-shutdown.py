@@ -11,5 +11,5 @@ with FS68() as fs:
     fs.set_power_mode(PowerMode.SHUTDOWN)
     print("> Power Mode set for SHUTDOWN")
 
-    fs.get_output(OutputType.BUZZER).set(OutputMode.OFF)
+    fs.output(OutputType.BUZZER).set(OutputMode.OFF)
     print("> Buzzer DISABLED")

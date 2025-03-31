@@ -960,7 +960,7 @@ class FS68(object):
     def set_power_mode(self, mode: PowerMode):
         self.mcu.set_power_mode(mode)
 
-    def get_output(self, ledType: OutputType) -> Union[FS68_OUTPUT, None]:
+    def output(self, ledType: OutputType) -> Union[FS68_OUTPUT, None]:
         assert OutputType.is_valid(ledType), f"Unsupported LEDType: {ledType}"
         if OutputType.is_valid_for_mcu(ledType):
             return FS68_McuOutput(self.mcu, ledType)
