@@ -22,12 +22,12 @@ fs.hwmon.probe()
 for key in sorted(fs.hwmon.devices.keys()):
     print(str(fs.hwmon.devices[key]))
 
-fan_cpu = fs.get_fan(FanType.CPU)
+fan_cpu = fs.fan(FanType.CPU)
 print(f"fan_cpu:     {fan_cpu}")
 fan_cpu.pwm = 60
 fan_cpu.pwm -= 30
 
-fan_storage = fs.get_fan(FanType.STORAGE)
+fan_storage = fs.fan(FanType.STORAGE)
 print(f"fan_storage: {fan_storage}")
 fan_storage.pwm = 60
 fan_storage.pwm -= 30

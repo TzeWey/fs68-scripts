@@ -131,7 +131,7 @@ def main():
 
         sys_ctrl = FanControlLoop("SYS",
                                   fs.get_zone_temp([TempZone.CPU, TempZone.SYSTEM, TempZone.PHY]),
-                                  fs.get_fan(FanType.CPU),
+                                  fs.fan(FanType.CPU),
                                   target_temperature=SYS_TARGET_TEMPERATURE,
                                   delta_temp_threshold=SYS_DELTA_TEMP_THRESHOLD,
                                   min_pwm=SYS_MIN_PWM,
@@ -139,7 +139,7 @@ def main():
 
         ssd_ctrl = FanControlLoop("SSD",
                                   fs.get_zone_temp(TempZone.NVME),
-                                  fs.get_fan(FanType.STORAGE),
+                                  fs.fan(FanType.STORAGE),
                                   target_temperature=SSD_TARGET_TEMPERATURE,
                                   delta_temp_threshold=SSD_DELTA_TEMP_THRESHOLD,
                                   min_pwm=SSD_MIN_PWM,

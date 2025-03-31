@@ -966,7 +966,7 @@ class FS68(object):
             return FS68_McuOutput(self.mcu, ledType)
         return FS68_GpioOutput(self.gpio.get_pin(ledType))
 
-    def get_fan(self, type: FanType) -> Union[FS68_FAN, None]:
+    def fan(self, type: FanType) -> Union[FS68_FAN, None]:
         assert FanType.is_valid(type), f"Unsupported FanType: {type}"
         if type == FanType.CPU:
             return self.hwmon.get_fan("nct7802", "fan1")
