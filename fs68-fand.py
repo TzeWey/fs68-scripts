@@ -130,7 +130,7 @@ def main():
         fs.probe_devices()  # first probe
 
         sys_ctrl = FanControlLoop("SYS",
-                                  fs.get_zone_temp([TempZone.CPU, TempZone.SYSTEM, TempZone.PHY]),
+                                  fs.temperature([TempZone.CPU, TempZone.SYSTEM, TempZone.PHY]),
                                   fs.fan(FanType.CPU),
                                   target_temperature=SYS_TARGET_TEMPERATURE,
                                   delta_temp_threshold=SYS_DELTA_TEMP_THRESHOLD,
@@ -138,7 +138,7 @@ def main():
                                   )
 
         ssd_ctrl = FanControlLoop("SSD",
-                                  fs.get_zone_temp(TempZone.NVME),
+                                  fs.temperature(TempZone.NVME),
                                   fs.fan(FanType.STORAGE),
                                   target_temperature=SSD_TARGET_TEMPERATURE,
                                   delta_temp_threshold=SSD_DELTA_TEMP_THRESHOLD,

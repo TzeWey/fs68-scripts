@@ -32,16 +32,16 @@ print(f"fan_storage: {fan_storage}")
 fan_storage.pwm = 60
 fan_storage.pwm -= 30
 
-zone_cpu = fs.get_zone_temp(TempZone.CPU)
+zone_cpu = fs.temperature(TempZone.CPU)
 print(f"zone_cpu:  {zone_cpu.value}")
 
-zone_sys = fs.get_zone_temp(TempZone.SYSTEM)
+zone_sys = fs.temperature(TempZone.SYSTEM)
 print(f"zone_sys:  {zone_sys.value}")
 
-zone_phy = fs.get_zone_temp(TempZone.PHY)
+zone_phy = fs.temperature(TempZone.PHY)
 print(f"zone_phy:  {zone_phy.value}")
 
-zone_nvme = fs.get_zone_temp(TempZone.NVME)
+zone_nvme = fs.temperature(TempZone.NVME)
 print(f"zone_nvme: {zone_nvme.value}")
 
 ```

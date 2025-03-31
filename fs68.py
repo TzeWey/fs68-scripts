@@ -974,9 +974,9 @@ class FS68(object):
             return FS68_McuFan(self.mcu)
         return None
 
-    def get_zone_temp(self, zones: TempZone | List[TempZone]):
+    def temperature(self, zones: TempZone | List[TempZone]):
         """
-        Returns an instance of FS68_TempAggregator
+        Returns an instance of FS68_TempAggregator with the given TempZone(s)
         """
         if not isinstance(zones, list):
             zones = [zones]  # make into list
