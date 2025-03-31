@@ -12,7 +12,6 @@ from enum import IntEnum, auto
 from time import sleep
 from typing import List, Dict, AnyStr, Union
 from pathlib import Path
-from simpleserial import Serial
 from logging import getLogger
 
 log = getLogger(__name__)
