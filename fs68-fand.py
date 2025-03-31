@@ -19,7 +19,7 @@ SYS_MIN_PWM = 60
 
 SSD_TARGET_TEMPERATURE = 60.0
 SSD_DELTA_TEMP_THRESHOLD = 1.0
-SSD_MIN_PWM = 100
+SSD_MIN_PWM = 30
 
 LOG_NAME = Path(__file__).parent.resolve().joinpath("fs68-fand.log")
 LOG_MAX_BYTES = 10 * 1024 * 1024
